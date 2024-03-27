@@ -24,14 +24,14 @@ class TestBooksCollector:
 
 
     @pytest.mark.parametrize("book_name, expected_result", [
-        ("Гордость и предубеждение", True),
-        ("A" * 42, False),
-        ("", False)
+        ("Гордость и предубеждение", ""),
+        ("A" * 42, None),
+        ("", None)
     ])
     def test_add_new_book(self, book_name, expected_result):
         collector = BooksCollector()
         collector.add_new_book(book_name)
-        result = book_name in collector.books_genre
+        result = collector.get_book_genre(book_name)
         assert result == expected_result
 
     def test_set_book_genre_unknown_genre(self):
@@ -42,9 +42,7 @@ class TestBooksCollector:
         unknown_genre = 'Мелодрама'
         collector.set_book_genre(book_name, unknown_genre)
 
-        book_genre = collector.get_book_genre(book_name)
-
-        assert book_genre == ''
+        assert collector.get_book_genre(book_name) == ''
 
     def test_set_books_genre_new_book(self):
         collector = BooksCollector()
@@ -94,18 +92,19 @@ class TestBooksCollector:
         actual_books_genre = collector.get_books_genre()
         assert actual_books_genre == expected_books_genre
 
-    def test_get_books_for_children_book_for_adults(self):
+    @pytest.mark.parametrize("book_name, genre, should_be_included", [
+        ('Колобок', 'Мультфильмы', True),  # книга для детей
+        ('Астрал', 'Ужасы', False),  # книга для взрослых
+    ])
+    def test_get_books_for_children_is_book_for_children(self, book_name, genre, should_be_included):
         collector = BooksCollector()
-        books_with_genres = {
-            'Колобок': 'Мультфильмы',
-            'Астрал': 'Ужасы'
-        }
-        for book, genre in books_with_genres.items():
-            collector.add_new_book(book)
-            collector.set_book_genre(book, genre)
+        collector.add_new_book(book_name)
+        collector.set_book_genre(book_name, genre)
 
         books_for_children = collector.get_books_for_children()
-        assert 'Астрал' not in books_for_children
+        result = book_name in books_for_children
+
+        assert result == should_be_included
 
     def test_add_book_in_favorites_one_book(self):
         collector = BooksCollector()
@@ -113,7 +112,7 @@ class TestBooksCollector:
         collector.add_new_book(book_name)
         collector.add_book_in_favorites(book_name)
 
-        assert book_name in collector.favorites
+        assert book_name in collector.get_list_of_favorites_books()
 
     def test_add_book_in_favorites_twice(self):
         collector = BooksCollector()
@@ -123,7 +122,7 @@ class TestBooksCollector:
 
         collector.add_book_in_favorites(book_name)
 
-        assert collector.favorites.count(book_name) == 1
+        assert collector.get_list_of_favorites_books().count(book_name) == 1
 
     def test_delete_book_from_favorites_one_book(self):
         collector = BooksCollector()
@@ -132,7 +131,7 @@ class TestBooksCollector:
         collector.add_book_in_favorites(book_name)
         collector.delete_book_from_favorites(book_name)
 
-        assert book_name not in collector.favorites
+        assert book_name not in collector.get_list_of_favorites_books()
 
     def test_get_list_of_favorites_books(self):
         collector = BooksCollector()
